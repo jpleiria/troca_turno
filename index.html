@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALERTA - TROCA DE TURNO</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: 'Arial Black', Gadget, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            /* Efeito de pulso de fundo em vermelho alerta */
+            animation: pulse-bg 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-bg {
+            0% { background-color: #000; }
+            50% { background-color: #5a0000; }
+            100% { background-color: #000; }
+        }
+
+        .container {
+            text-align: center;
+            width: 100%;
+        }
+
+        .logo {
+            width: 220px;
+            margin-bottom: 10px;
+            filter: drop-shadow(0 0 15px rgba(255,255,255,0.3));
+        }
+
+        .alert-text {
+            font-size: 5vw;
+            color: #ff0000;
+            text-transform: uppercase;
+            margin: 0;
+            letter-spacing: 10px;
+            text-shadow: 0 0 20px #ff0000;
+            animation: blink 1s infinite;
+        }
+
+        /* Relógio em formato Gigante */
+        .big-clock {
+            font-size: 18vw; /* Ocupa quase a largura toda da tela */
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 900;
+            color: #ffffff;
+            line-height: 1;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+            margin: 20px 0;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
+        }
+
+        /* Barras de sinalização (Hazard) */
+        .hazard-line {
+            height: 4vh;
+            background: repeating-linear-gradient(
+                -45deg,
+                #ffd700,
+                #ffd700 30px,
+                #000 30px,
+                #000 60px
+            );
+            width: 100%;
+            position: fixed;
+            left: 0;
+        }
+        .top { top: 0; border-bottom: 2px solid #ffd700; }
+        .bottom { bottom: 0; border-top: 2px solid #ffd700; }
+
+    </style>
+</head>
+<body>
+
+    <div class="hazard-line top"></div>
+
+    <div class="container">
+        <img src="logo.png" alt="Bombeiros Sapadores Leiria" class="logo">
+        
+        <div class="alert-text">Troca de Turno</div>
+        
+        <div class="big-clock" id="relogio">00:00:00</div>
+    </div>
+
+    <div class="hazard-line bottom"></div>
+
+    <script>
+        function atualizarRelogio() {
+            const agora = new Date();
+            const h = String(agora.getHours()).padStart(2, '0');
+            const m = String(agora.getMinutes()).padStart(2, '0');
+            const s = String(agora.getSeconds()).padStart(2, '0');
+            
+            document.getElementById('relogio').textContent = `${h}:${m}:${s}`;
+        }
+
+        // Atualiza a cada segundo
+        setInterval(atualizarRelogio, 1000);
+        // Chama imediatamente para não esperar 1 segundo no load
+        atualizarRelogio();
+    </script>
+
+</body>
+</html>
