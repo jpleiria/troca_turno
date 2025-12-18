@@ -16,14 +16,12 @@
             align-items: center;
             height: 100vh;
             overflow: hidden;
-            /* Efeito de pulso de fundo em vermelho alerta */
-            animation: pulse-bg 2s infinite ease-in-out;
+            animation: pulse-bg 3s infinite ease-in-out;
         }
 
         @keyframes pulse-bg {
-            0% { background-color: #000; }
-            50% { background-color: #5a0000; }
-            100% { background-color: #000; }
+            0%, 100% { background-color: #000; }
+            50% { background-color: #1a0000; }
         }
 
         .container {
@@ -32,53 +30,115 @@
         }
 
         .logo {
-            width: 220px;
-            margin-bottom: 10px;
-            filter: drop-shadow(0 0 15px rgba(255,255,255,0.3));
+            width: 150px;
+            margin-bottom: 5px;
+            filter: drop-shadow(0 0 15px rgba(255,255,255,0.2));
         }
 
         .alert-text {
-            font-size: 5vw;
+            font-size: 3vw;
             color: #ff0000;
             text-transform: uppercase;
             margin: 0;
-            letter-spacing: 10px;
+            letter-spacing: 12px;
             text-shadow: 0 0 20px #ff0000;
             animation: blink 1s infinite;
         }
 
-        /* Relógio em formato Gigante */
         .big-clock {
-            font-size: 18vw; /* Ocupa quase a largura toda da tela */
+            font-size: 11vw;
             font-family: 'Courier New', Courier, monospace;
             font-weight: 900;
             color: #ffffff;
             line-height: 1;
-            text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
-            margin: 20px 0;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
+            margin: 15px 0;
+        }
+
+        #shift-display {
+            display: none;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 20px;
+            perspective: 1000px;
+        }
+
+        .shift-box {
+            padding: 20px 40px;
+            border-radius: 15px;
+            min-width: 280px;
+            position: relative;
+        }
+
+        /* ESTILO SAIR (Vermelho) - Pulsação constante de opacidade */
+        .box-exit {
+            border: 4px solid #ff4444;
+            background: rgba(255, 0, 0, 0.15);
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
+            animation: slideFade 1s ease-out both, pulseExit 2s infinite ease-in-out;
+        }
+
+        /* ESTILO ENTRAR (Verde) - Pulsação constante de brilho e escala */
+        .box-entry {
+            border: 4px solid #00ff44;
+            background: rgba(0, 255, 68, 0.15);
+            box-shadow: 0 0 30px rgba(0, 255, 68, 0.5);
+            animation: popIn 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) both, glowPulse 1.5s infinite ease-in-out;
+        }
+
+        .label {
+            display: block;
+            font-size: 1.2vw;
+            color: #ffd700;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 3px;
+        }
+
+        .shift-name {
+            font-size: 3.5vw;
+            font-weight: bold;
+            display: block;
+            text-shadow: 2px 2px #000;
+        }
+
+        /* ANIMAÇÕES CONTÍNUAS */
+        @keyframes pulseExit {
+            0%, 100% { opacity: 0.7; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.98); }
+        }
+
+        @keyframes glowPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 68, 0.4); border-color: #00ff44; transform: scale(1); }
+            50% { box-shadow: 0 0 50px rgba(0, 255, 68, 0.8); border-color: #ffffff; transform: scale(1.02); }
+        }
+
+        /* ANIMAÇÕES DE ENTRADA (Trigger Inicial) */
+        @keyframes slideFade {
+            0% { transform: translateX(-50px); opacity: 0; }
+            100% { transform: translateX(0); opacity: 0.7; }
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5) translateY(50px); opacity: 0; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
         }
 
         @keyframes blink {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.2; }
+            50% { opacity: 0.4; }
         }
 
-        /* Barras de sinalização (Hazard) */
         .hazard-line {
             height: 4vh;
-            background: repeating-linear-gradient(
-                -45deg,
-                #ffd700,
-                #ffd700 30px,
-                #000 30px,
-                #000 60px
-            );
+            background: repeating-linear-gradient(-45deg, #ffd700, #ffd700 30px, #000 30px, #000 60px);
             width: 100%;
             position: fixed;
             left: 0;
+            z-index: 10;
         }
-        .top { top: 0; border-bottom: 2px solid #ffd700; }
-        .bottom { bottom: 0; border-top: 2px solid #ffd700; }
+        .top { top: 0; border-bottom: 3px solid #ffd700; }
+        .bottom { bottom: 0; border-top: 3px solid #ffd700; }
 
     </style>
 </head>
@@ -87,30 +147,79 @@
     <div class="hazard-line top"></div>
 
     <div class="container">
-        <img src="logo.png" alt="Bombeiros Sapadores Leiria" class="logo">
-        
+        <img src="logo.png" alt="Logo" class="logo">
         <div class="alert-text">Troca de Turno</div>
         
         <div class="big-clock" id="relogio">00:00:00</div>
+
+        <div id="shift-display">
+            <div class="shift-box box-exit">
+                <span class="label">Sair</span>
+                <span id="turno-sai" class="shift-name">---</span>
+            </div>
+            <div class="shift-box box-entry">
+                <span class="label">Entrar</span>
+                <span id="turno-entra" class="shift-name">---</span>
+            </div>
+        </div>
     </div>
 
     <div class="hazard-line bottom"></div>
 
     <script>
+        function gerirTurnos() {
+            const agora = new Date();
+            const h = agora.getHours();
+            const m = agora.getMinutes();
+            
+            // Janela de 3 minutos ativa (minutos 0, 1 e 2)
+            const janelaAtiva = ( (h === 8 || h === 20) && (m >= 0 && m < 3) );
+            const display = document.getElementById('shift-display');
+
+            if (janelaAtiva) {
+                // Configuração da sequência de piquetes
+                const dataRef = new Date(2025, 11, 18, 8, 0, 0); 
+                const diffMs = agora - dataRef;
+                const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                
+                const seq = ["Piquete 3", "Piquete 4", "Piquete 5", "Piquete 1", "Piquete 2"];
+                
+                let idxBase = diffDias % 5;
+                if (idxBase < 0) idxBase += 5;
+
+                let sai, entra;
+
+                if (h === 8) {
+                    entra = seq[idxBase];
+                    sai = seq[(idxBase + 3) % 5]; 
+                } else if (h === 20) {
+                    sai = seq[idxBase];
+                    entra = seq[(idxBase + 4) % 5];
+                }
+
+                document.getElementById('turno-sai').textContent = sai;
+                document.getElementById('turno-entra').textContent = entra;
+                
+                if (display.style.display !== 'flex') {
+                    display.style.display = 'flex';
+                }
+            } else {
+                display.style.display = 'none';
+            }
+        }
+
         function atualizarRelogio() {
             const agora = new Date();
             const h = String(agora.getHours()).padStart(2, '0');
             const m = String(agora.getMinutes()).padStart(2, '0');
             const s = String(agora.getSeconds()).padStart(2, '0');
-            
             document.getElementById('relogio').textContent = `${h}:${m}:${s}`;
+            gerirTurnos();
         }
 
         // Atualiza a cada segundo
         setInterval(atualizarRelogio, 1000);
-        // Chama imediatamente para não esperar 1 segundo no load
         atualizarRelogio();
     </script>
-
 </body>
 </html>
