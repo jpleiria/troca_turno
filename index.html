@@ -164,163 +164,124 @@
     <div class="hazard-line bottom"></div>
 
     <script>
-      // Configuração de Áudio e Voz
-let audioCtx = null;
-let oscillator = null;
-let gainNode = null;
-let alarmeAtivo = false;
-let sirenInterval = null;
-let alarmeJaTocouNestaJanela = false;
+        // Configuração de Áudio
+        let audioCtx = null;
+        let oscillator = null;
+        let gainNode = null;
+        let alarmeAtivo = false;
+        let sirenInterval = null;
+        let alarmeJaTocouNestaJanela = false; // Nova trava para não repetir nos 3 min
 
-// Função crucial para desbloquear o áudio no browser
-function iniciarAudioContext() {
-    if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
-}
-
-function anunciarVoz(texto, callback) {
-    // Cancela qualquer fala pendente para evitar sobreposição
-    window.speechSynthesis.cancel();
-
-    const mensagem = new SpeechSynthesisUtterance(texto);
-    mensagem.lang = 'pt-PT';
-    mensagem.rate = 0.8; 
-    mensagem.pitch = 1;
-    
-    mensagem.onend = () => {
-        if (callback) callback();
-    };
-
-    // Pequeno delay para garantir que o sistema de voz está pronto
-    setTimeout(() => {
-        window.speechSynthesis.speak(mensagem);
-    }, 100);
-}
-
-function criarSomAlerta() {
-    iniciarAudioContext();
-    
-    oscillator = audioCtx.createOscillator();
-    gainNode = audioCtx.createGain();
-    
-    oscillator.type = 'sawtooth'; 
-    gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
-    
-    let high = true;
-    sirenInterval = setInterval(() => {
-        if (oscillator) {
-            const freq = high ? 660 : 440;
-            // Transição suave de frequência
-            oscillator.frequency.exponentialRampToValueAtTime(freq, audioCtx.currentTime + 0.1);
-            high = !high;
+        function iniciarAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
         }
-    }, 300);
 
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-    oscillator.start();
-}
-
-function pararSomAlerta() {
-    if (oscillator) {
-        try { oscillator.stop(); } catch(e) {}
-        oscillator.disconnect();
-        oscillator = null;
-    }
-    if (sirenInterval) {
-        clearInterval(sirenInterval);
-        sirenInterval = null;
-    }
-}
-
-function executarCicloAlarme() {
-    if (alarmeAtivo || alarmeJaTocouNestaJanela) return;
-    
-    alarmeAtivo = true;
-    alarmeJaTocouNestaJanela = true;
-    
-    // Início do Ciclo de 15 segundos
-    // 1. Som inicial (4 seg)
-    criarSomAlerta();
-    
-    setTimeout(() => {
-        pararSomAlerta();
-        
-        // 2. Voz (aprox. 4-5 seg)
-        anunciarVoz("Troca de turno. Troca de turno.", () => {
+        function tocarAlarme() {
+            // Só toca se não estiver ativo E se ainda não tiver tocado nesta janela de 3 min
+            if (alarmeAtivo || alarmeJaTocouNestaJanela) return;
             
-            // 3. Som final (até completar os 15 seg)
-            criarSomAlerta();
+            iniciarAudioContext();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            oscillator = audioCtx.createOscillator();
+            gainNode = audioCtx.createGain();
+            oscillator.type = 'square'; 
             
+            let high = true;
+            sirenInterval = setInterval(() => {
+                if (oscillator) {
+                    const freq = high ? 480 : 380;
+                    oscillator.frequency.exponentialRampToValueAtTime(freq, audioCtx.currentTime + 0.1);
+                    high = !high;
+                }
+            }, 500);
+
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.start();
+            alarmeAtivo = true;
+            alarmeJaTocouNestaJanela = true; // Marca que já tocou
+
+            // DESLIGA O SOM APÓS 10 SEGUNDOS
             setTimeout(() => {
-                pararSomAlerta();
-                alarmeAtivo = false;
-            }, 6000); 
-        });
-    }, 4000);
-}
-
-function gerirTurnos() {
-    const agora = new Date();
-    const h = agora.getHours();
-    const m = agora.getMinutes();
-    
-    // ATENÇÃO: Para testar agora, pode mudar para: const janelaAtiva = true;
-    const janelaAtiva = ( (h === 8 || h === 20) && (m >= 0 && m < 3) );
-    const display = document.getElementById('shift-display');
-
-    if (janelaAtiva) {
-        executarCicloAlarme();
-
-        const dataRef = new Date(2025, 11, 18, 8, 0, 0); 
-        const diffMs = agora - dataRef;
-        const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        const seq = ["Piquete 3", "Piquete 4", "Piquete 5", "Piquete 1", "Piquete 2"];
-        
-        let idxBase = diffDias % 5;
-        if (idxBase < 0) idxBase += 5;
-
-        let sai, entra;
-        if (h === 8) {
-            entra = seq[idxBase];
-            sai = seq[(idxBase + 3) % 5]; 
-        } else {
-            sai = seq[idxBase];
-            entra = seq[(idxBase + 4) % 5];
+                pararAlarme();
+            }, 10000); 
         }
 
-        document.getElementById('turno-sai').textContent = sai;
-        document.getElementById('turno-entra').textContent = entra;
-        display.style.display = 'flex';
-    } else {
-        display.style.display = 'none';
-        pararSomAlerta();
-        alarmeAtivo = false;
-        alarmeJaTocouNestaJanela = false; 
-    }
-}
+        function pararAlarme() {
+            if (oscillator) {
+                oscillator.stop();
+                oscillator.disconnect();
+                oscillator = null;
+            }
+            if (sirenInterval) {
+                clearInterval(sirenInterval);
+                sirenInterval = null;
+            }
+            alarmeAtivo = false;
+        }
 
-function atualizarRelogio() {
-    const agora = new Date();
-    const h = String(agora.getHours()).padStart(2, '0');
-    const m = String(agora.getMinutes()).padStart(2, '0');
-    const s = String(agora.getSeconds()).padStart(2, '0');
-    document.getElementById('relogio').textContent = `${h}:${m}:${s}`;
-    gerirTurnos();
-}
+        function gerirTurnos() {
+            const agora = new Date();
+            const h = agora.getHours();
+            const m = agora.getMinutes();
+            
+            const janelaAtiva = ( (h === 8 || h === 20) && (m >= 0 && m < 3) );
+            const display = document.getElementById('shift-display');
 
-// Evento de clique para ativar o áudio (obrigatório pelos browsers)
-document.addEventListener('click', () => {
-    iniciarAudioContext();
-    console.log("Áudio ativado pelo utilizador");
-}, { once: true });
+            if (janelaAtiva) {
+                tocarAlarme();
 
-setInterval(atualizarRelogio, 1000);
-atualizarRelogio();
+                const dataRef = new Date(2025, 11, 18, 8, 0, 0); 
+                const diffMs = agora - dataRef;
+                const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                const seq = ["Piquete 3", "Piquete 4", "Piquete 5", "Piquete 1", "Piquete 2"];
+                
+                let idxBase = diffDias % 5;
+                if (idxBase < 0) idxBase += 5;
+
+                let sai, entra;
+                if (h === 8) {
+                    entra = seq[idxBase];
+                    sai = seq[(idxBase + 3) % 5]; 
+                } else if (h === 20) {
+                    sai = seq[idxBase];
+                    entra = seq[(idxBase + 4) % 5];
+                }
+
+                document.getElementById('turno-sai').textContent = sai;
+                document.getElementById('turno-entra').textContent = entra;
+                
+                if (display.style.display !== 'flex') {
+                    display.style.display = 'flex';
+                }
+            } else {
+                display.style.display = 'none';
+                pararAlarme();
+                alarmeJaTocouNestaJanela = false; // Reseta a trava quando sai da janela dos 3 min
+            }
+        }
+
+        function atualizarRelogio() {
+            const agora = new Date();
+            const h = String(agora.getHours()).padStart(2, '0');
+            const m = String(agora.getMinutes()).padStart(2, '0');
+            const s = String(agora.getSeconds()).padStart(2, '0');
+            document.getElementById('relogio').textContent = `${h}:${m}:${s}`;
+            gerirTurnos();
+        }
+
+        document.body.addEventListener('click', () => {
+            iniciarAudioContext();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }, { once: true });
+
+        setInterval(atualizarRelogio, 1000);
+        atualizarRelogio();
     </script>
 </body>
 </html>
