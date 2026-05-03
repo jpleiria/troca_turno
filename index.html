@@ -221,20 +221,8 @@ function pararSomAlerta() {
 }
 
 function executarCicloAlarme() {
-    if (alarmeAtivo || alarmeJaTocouNestaJanela) return;
-    alarmeAtivo = true;
+    if (alarmeJaTocouNestaJanela) return;
     alarmeJaTocouNestaJanela = true;
-    criarSomAlerta();
-    setTimeout(() => {
-        pararSomAlerta();
-        anunciarVoz("Troca de turno. Troca de turno.", () => {
-            criarSomAlerta();
-            setTimeout(() => {
-                pararSomAlerta();
-                alarmeAtivo = false;
-            }, 6000); 
-        });
-    }, 4000);
 }
 
 function gerirTurnos() {
